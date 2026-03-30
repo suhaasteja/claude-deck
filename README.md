@@ -1,4 +1,4 @@
-# claude-deck
+# claude-deck ♣️
 
 A Claude Code statusline that shows what matters while you work.
 
