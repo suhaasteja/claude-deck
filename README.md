@@ -3,7 +3,7 @@
 A Claude Code statusline that shows what matters while you work.
 
 ```
-📁 my-project  🌿 main  🤖 Claude Sonnet 4.6  📊 23% context window  💰 5% usage  ♫ Texas Sun – Khruangbin
+📁 my-project  🌿 main  🤖 Claude Sonnet 4.6  📊 23% context window  💰 5% usage  📝 LOC: 3847  ♫ Texas Sun – Khruangbin
 ```
 
 ## What it shows
@@ -15,6 +15,7 @@ A Claude Code statusline that shows what matters while you work.
 | 🤖 Model | Active Claude model |
 | 📊 Context window | Usage % — turns 🔴 at 80% |
 | 💰 Rate limit | 5-hour session usage % |
+| 📝 LOC | Lines of code in current project (updated each prompt) |
 | ♫ Now playing | Spotify track + artist (macOS only, when playing) |
 
 ## Install
@@ -31,10 +32,11 @@ A Claude Code statusline that shows what matters while you work.
 
 ### Option B — manual
 
-1. Copy the script:
+1. Copy the scripts:
    ```sh
    cp statusline.sh ~/.claude/statusline.sh
-   chmod +x ~/.claude/statusline.sh
+   cp loc.sh ~/.claude/loc.sh
+   chmod +x ~/.claude/statusline.sh ~/.claude/loc.sh
    ```
 
 2. Add to `~/.claude/settings.json`:
@@ -43,11 +45,20 @@ A Claude Code statusline that shows what matters while you work.
      "statusLine": {
        "type": "command",
        "command": "sh ~/.claude/statusline.sh"
+     },
+     "hooks": {
+       "UserPromptSubmit": [{
+         "hooks": [{
+           "type": "command",
+           "async": true,
+           "command": "cwd=$(jq -r '.cwd // empty'); [ -n \"$cwd\" ] && (cd \"$cwd\" && sh ~/.claude/loc.sh > /tmp/claude-loc 2>/dev/null) || true"
+         }]
+       }]
      }
    }
    ```
 
-3. Start a new Claude Code session — the statusline appears immediately.
+3. Start a new Claude Code session — the statusline appears immediately. LOC updates after your first prompt.
 
 ## Requirements
 
@@ -59,7 +70,7 @@ A Claude Code statusline that shows what matters while you work.
 
 ## How the statusline updates
 
-The script runs every time Claude Code refreshes the statusline (on each interaction). There is no background daemon — it queries Spotify inline via AppleScript on each refresh.
+The statusline script runs on each refresh — it reads from a cache file for LOC (non-blocking). LOC is computed by a `UserPromptSubmit` hook that runs `loc.sh` asynchronously in the background each time you send a prompt, so it never slows down the statusline. Spotify is queried inline via AppleScript on each refresh.
 
 ## Customization
 
