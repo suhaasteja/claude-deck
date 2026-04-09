@@ -1,12 +1,19 @@
 #!/bin/sh
 # Claude Code statusline script
-# Shows: directory, git branch, model, context usage, rate limit usage, Spotify now playing
+# Shows: directory, git branch, model, context usage, rate limit usage, LOC, Spotify now playing
 #
 # Install:
 #   1. Copy this file to ~/.claude/statusline.sh
-#   2. chmod +x ~/.claude/statusline.sh
-#   3. Add to ~/.claude/settings.json:
-#        "statusLine": { "type": "command", "command": "sh ~/.claude/statusline.sh" }
+#   2. Copy loc.sh to ~/.claude/loc.sh
+#   3. chmod +x ~/.claude/statusline.sh ~/.claude/loc.sh
+#   4. Add to ~/.claude/settings.json:
+#        "statusLine": { "type": "command", "command": "sh ~/.claude/statusline.sh" },
+#        "hooks": {
+#          "UserPromptSubmit": [{
+#            "hooks": [{ "type": "command", "async": true,
+#              "command": "cwd=$(jq -r '.cwd // empty'); [ -n \"$cwd\" ] && (cd \"$cwd\" && sh ~/.claude/loc.sh > /tmp/claude-loc 2>/dev/null) || true" }]
+#          }]
+#        }
 
 input=$(cat)
 cwd=$(echo "$input" | jq -r '.cwd')
@@ -56,6 +63,14 @@ fi
 # Rate limit usage (5-hour session)
 if [ -n "$rate_five" ]; then
   output="${output}$(printf "  ${YELLOW}💰 %.0f%% usage${RESET}" "$rate_five")"
+fi
+
+# LOC — updated by UserPromptSubmit hook, read from cache (non-blocking)
+if [ -f /tmp/claude-loc ]; then
+  loc=$(cat /tmp/claude-loc)
+  if [ -n "$loc" ]; then
+    output="${output}$(printf "  ${CYAN}📝 %s${RESET}" "$loc")"
+  fi
 fi
 
 # Spotify now playing (macOS only — requires Automation permission for Spotify)
